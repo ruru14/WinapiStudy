@@ -78,6 +78,9 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
         CreateDeviceResources();
     }
 
+    std::cout << "Console::Initialize\n";
+    TRACE(L"TRACE::Initialize\n");
+
     return hr;
 }
 
