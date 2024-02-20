@@ -54,6 +54,9 @@ void MyApp::DiscardDeviceResources() {
 }
 
 HRESULT MyApp::initialize(HINSTANCE hInstance) {
+    QueryPerformanceFrequency(&myFrequency);
+    QueryPerformanceCounter(&myPrevTime);
+
     HRESULT hr = CreateDeviceIndependentResources();
     WNDCLASSEX winCls = { sizeof(WNDCLASSEX) };
     winCls.style = CS_HREDRAW | CS_VREDRAW;
@@ -156,6 +159,23 @@ HRESULT MyApp::OnRender() {
     HRESULT hr = S_OK;
     hr = CreateDeviceResources();
     if (SUCCEEDED(hr)) {
+        LARGE_INTEGER currentTime;
+        QueryPerformanceCounter(&currentTime);
+        FLOAT deltaTime = (FLOAT)(
+            (DOUBLE)(currentTime.QuadPart - myPrevTime.QuadPart) / (DOUBLE)(myFrequency.QuadPart)
+            );
+        myPrevTime = currentTime;
+
+        frameTime.push_back(deltaTime);
+        while (frameTime.size() > frameAvgCount) frameTime.pop_front();
+
+        FLOAT totalTime = 0.0f;
+        for (auto& i : frameTime) {
+            totalTime += i;
+        }
+        FLOAT frameRate = 1 / (totalTime / frameAvgCount);
+        std::cout << frameRate << "\n";
+
         myRenderTarget->BeginDraw();
         myRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
         myRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));

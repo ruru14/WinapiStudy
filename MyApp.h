@@ -7,6 +7,7 @@
 // Default headers
 #include <windows.h>
 #include <tchar.h>
+#include <deque>
 
 #include <iostream>
 
@@ -53,4 +54,11 @@ private:
     ID2D1HwndRenderTarget* myRenderTarget = nullptr;
     ID2D1SolidColorBrush* myLightSlateGrayBrush = nullptr;
     ID2D1SolidColorBrush* myCornflowerBlueBrush = nullptr;
+
+    LARGE_INTEGER myPrevTime;
+    LARGE_INTEGER myFrequency;
+
+    std::deque<FLOAT> frameTime;
+    const int frameAvgCount = 10;
+
 };
