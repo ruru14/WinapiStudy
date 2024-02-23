@@ -95,6 +95,7 @@ void MyApp::runMessageLoop() {
         if (bRet == -1) {
             // Error handling
         } else {
+            HandleKeyboardInput();
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
@@ -116,6 +117,26 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
         if (myApp) {
             switch (message) {
+            case WM_KEYDOWN:
+            case WM_KEYUP:
+                switch (wParam) {
+                case 'A':
+                    if (lParam & 0x80000000) {
+                        std::cout << "A Up\n";
+                    } else {
+                        std::cout << "A Down\n";
+                    }
+                    break;
+                case VK_CONTROL:
+                    if (lParam & 0x80000000) {
+                        std::cout << "Ctrl Up\n";
+                    } else {
+                        std::cout << "Ctrl Down\n";
+                    }
+                    break;
+                }
+                result = 0; wasHandled = true;
+                break;
             case WM_SIZE:
             {
             UINT width = LOWORD(lParam);
@@ -155,6 +176,23 @@ void MyApp::OnResize(UINT width, UINT height) {
     }
 }
 
+void MyApp::HandleKeyboardInput() {
+    bool isCtrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
+    if (isCtrl && (GetAsyncKeyState('D') & 0x8000)) {
+        std::cout << "Ctrl D\n";
+    }
+
+    if (GetAsyncKeyState('S') & 0x8000) {
+        inputFlag['S'] = true;
+        std::cout << "Input S\n";
+    } else {
+        if (inputFlag['S']) {
+            inputFlag['S'] = false;
+            std::cout << "Release S\n";
+        }
+    }
+}
+
 HRESULT MyApp::OnRender() {
     HRESULT hr = S_OK;
     hr = CreateDeviceResources();
@@ -174,7 +212,7 @@ HRESULT MyApp::OnRender() {
             totalTime += i;
         }
         FLOAT frameRate = 1 / (totalTime / frameAvgCount);
-        std::cout << frameRate << "\n";
+        //std::cout << frameRate << "\n";
 
         myRenderTarget->BeginDraw();
         myRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());

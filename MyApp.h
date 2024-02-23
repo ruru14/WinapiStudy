@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include <deque>
+#include <map>
 
 #include <iostream>
 
@@ -47,6 +48,7 @@ private:
     void DiscardDeviceResources();
     HRESULT OnRender();
     void OnResize(UINT width, UINT height);
+    void HandleKeyboardInput();
 
 private:
     HWND myHwnd = nullptr;
@@ -60,5 +62,7 @@ private:
 
     std::deque<FLOAT> frameTime;
     const int frameAvgCount = 10;
+
+    std::map<DWORD, bool> inputFlag;
 
 };
