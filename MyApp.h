@@ -45,6 +45,9 @@ private:
     static LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     HRESULT CreateDeviceIndependentResources();
     HRESULT CreateDeviceResources();
+    HRESULT LoadBitmapFromFile(
+        PCWSTR uri,
+        ID2D1Bitmap** ppBitmap);
     void DiscardDeviceResources();
     HRESULT OnRender();
     void OnResize(UINT width, UINT height);
@@ -56,6 +59,9 @@ private:
     ID2D1HwndRenderTarget* myRenderTarget = nullptr;
     ID2D1SolidColorBrush* myLightSlateGrayBrush = nullptr;
     ID2D1SolidColorBrush* myCornflowerBlueBrush = nullptr;
+
+    IWICImagingFactory* myWICFactory = nullptr;
+    ID2D1Bitmap* myBitmap = nullptr;
 
     LARGE_INTEGER myPrevTime;
     LARGE_INTEGER myFrequency;

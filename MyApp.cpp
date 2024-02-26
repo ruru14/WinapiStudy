@@ -5,7 +5,9 @@ MyApp::MyApp() :
     myDirect2dFactory(nullptr),
     myRenderTarget(nullptr),
     myLightSlateGrayBrush(nullptr),
-    myCornflowerBlueBrush(nullptr) {
+    myCornflowerBlueBrush(nullptr),
+    myWICFactory(nullptr),
+    myBitmap(nullptr) {
 }
 
 MyApp::~MyApp() {
@@ -16,6 +18,10 @@ MyApp::~MyApp() {
 HRESULT MyApp::CreateDeviceIndependentResources() {
     HRESULT hr = S_OK;
     hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, &myDirect2dFactory);
+    if (SUCCEEDED(hr)) {
+        hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, 
+            IID_PPV_ARGS(&myWICFactory));
+    }
 
     return hr;
 }
@@ -47,7 +53,60 @@ HRESULT MyApp::CreateDeviceResources() {
     return hr;
 }
 
+HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
+    IWICBitmapDecoder* pDecoder = NULL;
+    IWICBitmapFrameDecode* pSource = NULL;
+    IWICStream* pStream = NULL;
+    IWICFormatConverter* pConverter = NULL;
+    IWICBitmapScaler* pScaler = NULL;
+
+    if (!myWICFactory) CreateDeviceIndependentResources();
+    if (!myRenderTarget) CreateDeviceResources();
+
+    HRESULT hr = myWICFactory->CreateDecoderFromFilename(
+        uri,
+        NULL,
+        GENERIC_READ,
+        WICDecodeMetadataCacheOnLoad,
+        &pDecoder
+    );
+
+    if (SUCCEEDED(hr)) {
+        hr = pDecoder->GetFrame(0, &pSource);
+    }
+    if (SUCCEEDED(hr)) {
+        hr = myWICFactory->CreateFormatConverter(&pConverter);
+    }
+
+    if (SUCCEEDED(hr)) {
+        hr = pConverter->Initialize(
+            pSource,
+            GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.f,
+            WICBitmapPaletteTypeMedianCut
+        );
+    }
+    if (SUCCEEDED(hr)) {
+        hr = myRenderTarget->CreateBitmapFromWicBitmap(
+            pConverter,
+            NULL,
+            ppBitmap
+        );
+    }
+
+    SAFE_RELEASE(pDecoder);
+    SAFE_RELEASE(pSource);
+    SAFE_RELEASE(pStream);
+    SAFE_RELEASE(pConverter);
+    SAFE_RELEASE(pScaler);
+
+    return hr;
+}
+
 void MyApp::DiscardDeviceResources() {
+    SAFE_RELEASE(myBitmap);
     SAFE_RELEASE(myRenderTarget);
     SAFE_RELEASE(myLightSlateGrayBrush);
     SAFE_RELEASE(myCornflowerBlueBrush);
@@ -83,6 +142,8 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
 
     std::cout << "Console::Initialize\n";
     TRACE(L"TRACE::Initialize\n");
+
+    LoadBitmapFromFile(L"dx_logo.png", &myBitmap);
 
     return hr;
 }
@@ -222,6 +283,15 @@ HRESULT MyApp::OnRender() {
 
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
+
+        if (myBitmap) {
+            myRenderTarget->DrawBitmap(myBitmap,
+                D2D1::RectF(
+                    0.0f, 0.0f,
+                    rtSize.width, rtSize.height
+                ));
+        }
+
         for (int x = 0; x < width; x += 10) {
             myRenderTarget->DrawLine(D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
                 D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
@@ -262,8 +332,10 @@ int WinMain(
     int nShowCmd
 ) {
     MyApp* app = new MyApp();
-    if (SUCCEEDED(app->initialize(hInstance))) {
-        app->runMessageLoop();
+    if (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) {
+        if (SUCCEEDED(app->initialize(hInstance))) {
+            app->runMessageLoop();
+        }
     }
 
     return 0;
