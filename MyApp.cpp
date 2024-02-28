@@ -22,6 +22,7 @@ HRESULT MyApp::CreateDeviceIndependentResources() {
         hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, 
             IID_PPV_ARGS(&myWICFactory));
     }
+    mySequenceBitmap = new MyBitmap();
 
     return hr;
 }
@@ -105,6 +106,69 @@ HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
     return hr;
 }
 
+HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
+    IWICBitmapDecoder* pDecoder = NULL;
+    std::vector<ID2D1Bitmap*> bitmapArr;
+
+    if (!myWICFactory) CreateDeviceIndependentResources();
+    if (!myRenderTarget) CreateDeviceResources();
+
+    HRESULT hr = myWICFactory->CreateDecoderFromFilename(
+        uri,
+        NULL,
+        GENERIC_READ,
+        WICDecodeMetadataCacheOnLoad,
+        &pDecoder
+    );
+
+    UINT frameCount = -1;
+    if (SUCCEEDED(hr)) {
+        hr = pDecoder->GetFrameCount(&frameCount);
+    }
+    if (SUCCEEDED(hr)) {
+        for (int i = 0; i < frameCount; i++) {
+            IWICFormatConverter* pConverter = nullptr;
+            IWICBitmapFrameDecode* tmpSource = nullptr;
+            ID2D1Bitmap* tmpBitmap = nullptr;
+            if (SUCCEEDED(hr)) {
+                hr = myWICFactory->CreateFormatConverter(&pConverter);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = pDecoder->GetFrame(i, &tmpSource);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = pConverter->Initialize(
+                    tmpSource,
+                    GUID_WICPixelFormat32bppPBGRA,
+                    WICBitmapDitherTypeNone,
+                    NULL,
+                    0.f,
+                    WICBitmapPaletteTypeMedianCut
+                );
+            }
+            if (SUCCEEDED(hr)) {
+                hr = myRenderTarget->CreateBitmapFromWicBitmap(
+                    pConverter,
+                    NULL,
+                    &tmpBitmap
+                );
+            }
+            if (SUCCEEDED(hr)) {
+                bitmapArr.push_back(std::move(tmpBitmap));
+            }
+            SAFE_RELEASE(pConverter);
+            SAFE_RELEASE(tmpSource);
+        }
+    }
+    if (myBitmap) {
+        myBitmap->Initialize(frameCount, bitmapArr);
+    }
+
+    SAFE_RELEASE(pDecoder);
+
+    return hr;
+}
+
 void MyApp::DiscardDeviceResources() {
     SAFE_RELEASE(myBitmap);
     SAFE_RELEASE(myRenderTarget);
@@ -144,6 +208,7 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
     TRACE(L"TRACE::Initialize\n");
 
     LoadBitmapFromFile(L"dx_logo.png", &myBitmap);
+    LoadBitmapFromFile2(L"loading.gif", mySequenceBitmap);
 
     return hr;
 }
@@ -275,6 +340,8 @@ HRESULT MyApp::OnRender() {
         FLOAT frameRate = 1 / (totalTime / frameAvgCount);
         //std::cout << frameRate << "\n";
 
+        mySequenceBitmap->Tick(deltaTime);
+
         myRenderTarget->BeginDraw();
         myRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
         myRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
@@ -290,6 +357,17 @@ HRESULT MyApp::OnRender() {
                     0.0f, 0.0f,
                     rtSize.width, rtSize.height
                 ));
+        }
+
+        if (mySequenceBitmap) {
+            ID2D1Bitmap* tmp = mySequenceBitmap->GetBitmap();
+            if (tmp) {
+                myRenderTarget->DrawBitmap(tmp,
+                    D2D1::RectF(
+                        0.0f, 0.0f,
+                        rtSize.width, rtSize.height
+                    ));
+            }
         }
 
         for (int x = 0; x < width; x += 10) {

@@ -130,9 +130,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MyApp.cpp" />
+    <ClCompile Include="MyBitmap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyApp.h" />
+    <ClInclude Include="MyBitmap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

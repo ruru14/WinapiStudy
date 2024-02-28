@@ -18,6 +18,9 @@
 #include <dwrite.h>
 #include <wincodec.h>
 
+// My classes
+#include "MyBitmap.h"
+
 #if defined(_DEBUG) && defined(WIN32) && !defined(_AFX) && !defined(_AFXDLL)
 #define TRACE TRACE_WIN32
 void TRACE_WIN32(LPCTSTR lpszFormat, ...) {
@@ -48,6 +51,9 @@ private:
     HRESULT LoadBitmapFromFile(
         PCWSTR uri,
         ID2D1Bitmap** ppBitmap);
+    HRESULT LoadBitmapFromFile2(
+        PCWSTR uri,
+        MyBitmap* myBitmap);
     void DiscardDeviceResources();
     HRESULT OnRender();
     void OnResize(UINT width, UINT height);
@@ -62,6 +68,8 @@ private:
 
     IWICImagingFactory* myWICFactory = nullptr;
     ID2D1Bitmap* myBitmap = nullptr;
+
+    MyBitmap* mySequenceBitmap = nullptr;
 
     LARGE_INTEGER myPrevTime;
     LARGE_INTEGER myFrequency;
