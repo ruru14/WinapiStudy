@@ -1,1 +1,11 @@
-
+# [Direct2D] 비트맵 이미지 움직이기 (1)
+- https://milleatelier.tistory.com/153
+- 이미지의 이동을 구현
+- MyBitmap객체에 이미지의 크기, 위치값을 저장하는 변수 추가
+  - std::vector<D2D1_SIZE_F> bitmapSize : 이미지의 프레임 별 크기
+  - D2D1_SIZE_F currentPosition : 이미지의 현재 위치
+  - UINT currentFrame : 현재 출력중인 이미지의 프레임
+- MyBitmap객체에 이미지의 위치를 변경, 출력하는 함수 추가
+  - D2D1_RECT_F GetBitmapPosition() : 이미지의 크기와 위치를 Rect로 반환
+  - void SetPosition(FLOAT x, FLOAT y) : 이미지의 위치 지정된 값으로 변경
+  - void Move(FLOAT x, FLOAT y) : 이미지의 위치를 지정한 값만큼 변경
