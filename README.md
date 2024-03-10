@@ -1,4 +1,5 @@
 # [Direct2D] 도형 그려보기
+- https://milleatelier.tistory.com/147
 - DirectX 라이브러리 추가
 - 사용할 헤더 및 리소스 해제 매크로 추가
 - 추가되는 클래스 함수 및 변수 선언
