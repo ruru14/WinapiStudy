@@ -1,4 +1,5 @@
 # [Direct2D] 비트맵 이미지 그리기
+- https://milleatelier.tistory.com/151
 - 샘플 이미지 (DX Logo)추가
 - COM 초기화 (CoInitializeEx)
 - LoadBitmapFromFile함수 초기화 및 구현
