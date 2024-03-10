@@ -359,14 +359,13 @@ HRESULT MyApp::OnRender() {
                 ));
         }
 
+        mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
         if (mySequenceBitmap) {
             ID2D1Bitmap* tmp = mySequenceBitmap->GetBitmap();
             if (tmp) {
                 myRenderTarget->DrawBitmap(tmp,
-                    D2D1::RectF(
-                        0.0f, 0.0f,
-                        rtSize.width, rtSize.height
-                    ));
+                    mySequenceBitmap->GetBitmapPosition()
+                );
             }
         }
 
