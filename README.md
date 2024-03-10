@@ -1,4 +1,5 @@
 # [Direct2D] 움직이는 비트맵 이미지 그리기
+- https://milleatelier.tistory.com/152
 - 샘플 이미지 loading.gif 추가
 - 시퀀스 이미지를 저장할 객체 MyBitmap 추가
   - 객체를 초기화하는 Initialize함수 추가
