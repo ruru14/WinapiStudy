@@ -25,8 +25,10 @@ void MyBitmap::Initialize(UINT frameCount, std::vector<ID2D1Bitmap*> bitmapArr) 
 
 D2D1_RECT_F MyBitmap::GetBitmapPosition() {
 	return D2D1::RectF(
-		0 + currentPosition.width, 0 + currentPosition.height,
-		bitmapSize[currentFrame].width + currentPosition.width, bitmapSize[currentFrame].height + currentPosition.height
+		0 + currentPosition.width, 
+		0 + currentPosition.height,
+		(bitmapSize[currentFrame].width * bitmapSacleX) + currentPosition.width, 
+		(bitmapSize[currentFrame].height * bitmapSacleY) + currentPosition.height
 	);
 }
 
@@ -38,4 +40,9 @@ void MyBitmap::SetPosition(FLOAT x, FLOAT y) {
 void MyBitmap::Move(FLOAT x, FLOAT y) {
 	currentPosition.width += x;
 	currentPosition.height += y;
+}
+
+void MyBitmap::SetScale(FLOAT x, FLOAT y) {
+	bitmapSacleX = x;
+	bitmapSacleY = y;
 }

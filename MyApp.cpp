@@ -23,6 +23,7 @@ HRESULT MyApp::CreateDeviceIndependentResources() {
             IID_PPV_ARGS(&myWICFactory));
     }
     mySequenceBitmap = new MyBitmap();
+    myCharacterBitmap = new MyBitmap();
 
     return hr;
 }
@@ -209,6 +210,8 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
 
     LoadBitmapFromFile(L"dx_logo.png", &myBitmap);
     LoadBitmapFromFile2(L"loading.gif", mySequenceBitmap);
+    LoadBitmapFromFile2(L"snail.png", myCharacterBitmap);
+    myCharacterBitmap->SetScale(0.5f, 0.5f);
 
     return hr;
 }
@@ -317,6 +320,61 @@ void MyApp::HandleKeyboardInput() {
             std::cout << "Release S\n";
         }
     }
+
+    if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
+        inputFlag[VK_LEFT] = true;
+        MoveDirection[0] = -1;
+        if (MoveDirection[2] != 0) {
+            isLeft = false;
+        } else {
+            isLeft = true;
+        }
+        std::cout << "Input VK_LEFT\n";
+    } else {
+        if (inputFlag[VK_LEFT]) {
+            inputFlag[VK_LEFT] = false;
+            MoveDirection[0] = 0;
+            std::cout << "Release VK_LEFT\n";
+        }
+    }
+    if (GetAsyncKeyState(VK_UP) & 0x8000) {
+        inputFlag[VK_UP] = true;
+        MoveDirection[1] = -1;
+        std::cout << "Input VK_UP\n";
+    } else {
+        if (inputFlag[VK_UP]) {
+            inputFlag[VK_UP] = false;
+            MoveDirection[1] = 0;
+            std::cout << "Release VK_UP\n";
+        }
+    }
+    if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
+        inputFlag[VK_RIGHT] = true;
+        MoveDirection[2] = 1;
+        if (MoveDirection[0] != 0) {
+            isLeft = true;
+        } else {
+            isLeft = false;
+        }
+        std::cout << "Input VK_RIGHT\n";
+    } else {
+        if (inputFlag[VK_RIGHT]) {
+            inputFlag[VK_RIGHT] = false;
+            MoveDirection[2] = 0;
+            std::cout << "Release VK_RIGHT\n";
+        }
+    }
+    if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
+        inputFlag[VK_DOWN] = true;
+        MoveDirection[3] = 1;
+        std::cout << "Input VK_DOWN\n";
+    } else {
+        if (inputFlag[VK_DOWN]) {
+            inputFlag[VK_DOWN] = false;
+            MoveDirection[3] = 0;
+            std::cout << "Release VK_DOWN\n";
+        }
+    }
 }
 
 HRESULT MyApp::OnRender() {
@@ -341,11 +399,12 @@ HRESULT MyApp::OnRender() {
         //std::cout << frameRate << "\n";
 
         mySequenceBitmap->Tick(deltaTime);
+        myCharacterBitmap->Tick(deltaTime);
 
         myRenderTarget->BeginDraw();
         myRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
         myRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-
+        
         D2D1_SIZE_F rtSize = myRenderTarget->GetSize();
 
         int width = static_cast<int>(rtSize.width);
@@ -366,6 +425,23 @@ HRESULT MyApp::OnRender() {
                 myRenderTarget->DrawBitmap(tmp,
                     mySequenceBitmap->GetBitmapPosition()
                 );
+            }
+        }
+
+        myCharacterBitmap->Move(
+            deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
+            deltaTime * MoveSpeed * (MoveDirection[1] + MoveDirection[3]));
+        if (myCharacterBitmap) {
+            ID2D1Bitmap* tmp = myCharacterBitmap->GetBitmap();
+            if (tmp) {
+                D2D1_RECT_F ps = myCharacterBitmap->GetBitmapPosition();
+                D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
+                //myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
+                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(-1.f, 1.f, center));
+                myRenderTarget->DrawBitmap(tmp,
+                    ps
+                );
+                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
             }
         }
 

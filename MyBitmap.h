@@ -14,12 +14,15 @@ public:
 	D2D1_RECT_F GetBitmapPosition();
 	void SetPosition(FLOAT x, FLOAT y);
 	void Move(FLOAT x, FLOAT y);
+	void SetScale(FLOAT x, FLOAT y);
 
-public:
+private:
 	std::vector<ID2D1Bitmap*> bitmap;
 	std::vector<D2D1_SIZE_F> bitmapSize;
 	D2D1_SIZE_F currentPosition;
 	UINT frameCount = -1;
 	UINT currentFrame;
 	FLOAT elapseTime = 0.f;
+	FLOAT bitmapSacleX = 1.f;
+	FLOAT bitmapSacleY = 1.f;
 };

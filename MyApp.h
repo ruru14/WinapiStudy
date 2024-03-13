@@ -70,6 +70,10 @@ private:
     ID2D1Bitmap* myBitmap = nullptr;
 
     MyBitmap* mySequenceBitmap = nullptr;
+    MyBitmap* myCharacterBitmap = nullptr;
+    FLOAT MoveSpeed = 140.f;
+    FLOAT MoveDirection[4] = {0.f, 0.f, 0.f, 0.f};
+    bool isLeft = false;
 
     LARGE_INTEGER myPrevTime;
     LARGE_INTEGER myFrequency;
