@@ -436,8 +436,8 @@ HRESULT MyApp::OnRender() {
             if (tmp) {
                 D2D1_RECT_F ps = myCharacterBitmap->GetBitmapPosition();
                 D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
-                //myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
-                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(-1.f, 1.f, center));
+                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
+                //myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(-1.f, 1.f, center));
                 myRenderTarget->DrawBitmap(tmp,
                     ps
                 );
