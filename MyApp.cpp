@@ -1,29 +1,22 @@
 #include "MyApp.h"
 
-MyApp::MyApp() :
-    myHwnd(nullptr),
-    myDirect2dFactory(nullptr),
-    myRenderTarget(nullptr),
-    myLightSlateGrayBrush(nullptr),
-    myCornflowerBlueBrush(nullptr),
-    myWICFactory(nullptr),
-    myBitmap(nullptr) {
+MyApp::MyApp() {
 }
 
 MyApp::~MyApp() {
     DiscardDeviceResources();
-    SAFE_RELEASE(myDirect2dFactory);
+    //SAFE_RELEASE(myDirect2dFactory);
 }
 
 HRESULT MyApp::CreateDeviceIndependentResources() {
     HRESULT hr = S_OK;
-    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, &myDirect2dFactory);
+    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, IID_PPV_ARGS(&myDirect2dFactory));
     if (SUCCEEDED(hr)) {
         hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, 
             IID_PPV_ARGS(&myWICFactory));
     }
-    mySequenceBitmap = new MyBitmap();
-    myCharacterBitmap = new MyBitmap();
+    mySequenceBitmap = std::make_shared<MyBitmap>();
+    myCharacterBitmap = std::make_shared<MyBitmap>();
 
     return hr;
 }
@@ -56,11 +49,11 @@ HRESULT MyApp::CreateDeviceResources() {
 }
 
 HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
-    IWICBitmapDecoder* pDecoder = NULL;
-    IWICBitmapFrameDecode* pSource = NULL;
-    IWICStream* pStream = NULL;
-    IWICFormatConverter* pConverter = NULL;
-    IWICBitmapScaler* pScaler = NULL;
+    ComPtr<IWICBitmapDecoder> pDecoder;
+    ComPtr<IWICBitmapFrameDecode> pSource;
+    ComPtr<IWICStream> pStream;
+    ComPtr<IWICFormatConverter> pConverter;
+    ComPtr<IWICBitmapScaler> pScaler;
 
     if (!myWICFactory) CreateDeviceIndependentResources();
     if (!myRenderTarget) CreateDeviceResources();
@@ -82,7 +75,7 @@ HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
 
     if (SUCCEEDED(hr)) {
         hr = pConverter->Initialize(
-            pSource,
+            pSource.Get(),
             GUID_WICPixelFormat32bppPBGRA,
             WICBitmapDitherTypeNone,
             NULL,
@@ -92,24 +85,18 @@ HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
     }
     if (SUCCEEDED(hr)) {
         hr = myRenderTarget->CreateBitmapFromWicBitmap(
-            pConverter,
+            pConverter.Get(),
             NULL,
             ppBitmap
         );
     }
 
-    SAFE_RELEASE(pDecoder);
-    SAFE_RELEASE(pSource);
-    SAFE_RELEASE(pStream);
-    SAFE_RELEASE(pConverter);
-    SAFE_RELEASE(pScaler);
-
     return hr;
 }
 
 HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
-    IWICBitmapDecoder* pDecoder = NULL;
-    std::vector<ID2D1Bitmap*> bitmapArr;
+    ComPtr<IWICBitmapDecoder> pDecoder;
+    std::vector<ComPtr<ID2D1Bitmap>> bitmapArr;
 
     if (!myWICFactory) CreateDeviceIndependentResources();
     if (!myRenderTarget) CreateDeviceResources();
@@ -128,9 +115,9 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
     }
     if (SUCCEEDED(hr)) {
         for (int i = 0; i < frameCount; i++) {
-            IWICFormatConverter* pConverter = nullptr;
-            IWICBitmapFrameDecode* tmpSource = nullptr;
-            ID2D1Bitmap* tmpBitmap = nullptr;
+            ComPtr<IWICFormatConverter> pConverter;
+            ComPtr<IWICBitmapFrameDecode> tmpSource;
+            ComPtr<ID2D1Bitmap> tmpBitmap;
             if (SUCCEEDED(hr)) {
                 hr = myWICFactory->CreateFormatConverter(&pConverter);
             }
@@ -139,7 +126,7 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
             }
             if (SUCCEEDED(hr)) {
                 hr = pConverter->Initialize(
-                    tmpSource,
+                    tmpSource.Get(),
                     GUID_WICPixelFormat32bppPBGRA,
                     WICBitmapDitherTypeNone,
                     NULL,
@@ -149,7 +136,7 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
             }
             if (SUCCEEDED(hr)) {
                 hr = myRenderTarget->CreateBitmapFromWicBitmap(
-                    pConverter,
+                    pConverter.Get(),
                     NULL,
                     &tmpBitmap
                 );
@@ -157,24 +144,20 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
             if (SUCCEEDED(hr)) {
                 bitmapArr.push_back(std::move(tmpBitmap));
             }
-            SAFE_RELEASE(pConverter);
-            SAFE_RELEASE(tmpSource);
         }
     }
     if (myBitmap) {
         myBitmap->Initialize(frameCount, bitmapArr);
     }
 
-    SAFE_RELEASE(pDecoder);
 
     return hr;
 }
 
 void MyApp::DiscardDeviceResources() {
-    SAFE_RELEASE(myBitmap);
-    SAFE_RELEASE(myRenderTarget);
-    SAFE_RELEASE(myLightSlateGrayBrush);
-    SAFE_RELEASE(myCornflowerBlueBrush);
+    //SAFE_RELEASE(myBitmap);
+    //SAFE_RELEASE(myLightSlateGrayBrush);
+    //SAFE_RELEASE(myCornflowerBlueBrush);
 }
 
 HRESULT MyApp::initialize(HINSTANCE hInstance) {
@@ -209,8 +192,8 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
     TRACE(L"TRACE::Initialize\n");
 
     LoadBitmapFromFile(L"dx_logo.png", &myBitmap);
-    LoadBitmapFromFile2(L"loading.gif", mySequenceBitmap);
-    LoadBitmapFromFile2(L"snail.png", myCharacterBitmap);
+    LoadBitmapFromFile2(L"loading.gif", mySequenceBitmap.get());
+    LoadBitmapFromFile2(L"snail.png", myCharacterBitmap.get());
     myCharacterBitmap->SetScale(0.5f, 0.5f);
 
     return hr;
@@ -411,7 +394,7 @@ HRESULT MyApp::OnRender() {
         int height = static_cast<int>(rtSize.height);
 
         if (myBitmap) {
-            myRenderTarget->DrawBitmap(myBitmap,
+            myRenderTarget->DrawBitmap(myBitmap.Get(),
                 D2D1::RectF(
                     0.0f, 0.0f,
                     rtSize.width, rtSize.height
@@ -420,9 +403,9 @@ HRESULT MyApp::OnRender() {
 
         mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
         if (mySequenceBitmap) {
-            ID2D1Bitmap* tmp = mySequenceBitmap->GetBitmap();
+            ComPtr<ID2D1Bitmap> tmp = mySequenceBitmap->GetBitmap();
             if (tmp) {
-                myRenderTarget->DrawBitmap(tmp,
+                myRenderTarget->DrawBitmap(tmp.Get(),
                     mySequenceBitmap->GetBitmapPosition()
                 );
             }
@@ -432,13 +415,13 @@ HRESULT MyApp::OnRender() {
             deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
             deltaTime * MoveSpeed * (MoveDirection[1] + MoveDirection[3]));
         if (myCharacterBitmap) {
-            ID2D1Bitmap* tmp = myCharacterBitmap->GetBitmap();
+            ComPtr<ID2D1Bitmap> tmp = myCharacterBitmap->GetBitmap();
             if (tmp) {
                 D2D1_RECT_F ps = myCharacterBitmap->GetBitmapPosition();
                 D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
                 myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
                 //myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(-1.f, 1.f, center));
-                myRenderTarget->DrawBitmap(tmp,
+                myRenderTarget->DrawBitmap(tmp.Get(),
                     ps
                 );
                 myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
@@ -448,12 +431,12 @@ HRESULT MyApp::OnRender() {
         for (int x = 0; x < width; x += 10) {
             myRenderTarget->DrawLine(D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
                 D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
-                myLightSlateGrayBrush, 0.5f);
+                myLightSlateGrayBrush.Get(), 0.5f);
         }
         for (int y = 0; y < height; y += 10) {
             myRenderTarget->DrawLine(D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
                 D2D1::Point2F(rtSize.width, static_cast<FLOAT>(y)),
-                myLightSlateGrayBrush, 0.5f);
+                myLightSlateGrayBrush.Get(), 0.5f);
         }
 
         D2D1_RECT_F rectangle1 = D2D1::RectF(
@@ -464,8 +447,8 @@ HRESULT MyApp::OnRender() {
             rtSize.width / 2 - 100.0f, rtSize.height / 2 - 100.0f,
             rtSize.width / 2 + 100.0f, rtSize.height / 2 + 100.0f
         );
-        myRenderTarget->FillRectangle(&rectangle1, myLightSlateGrayBrush);
-        myRenderTarget->DrawRectangle(&rectangle2, myCornflowerBlueBrush);
+        myRenderTarget->FillRectangle(&rectangle1, myLightSlateGrayBrush.Get());
+        myRenderTarget->DrawRectangle(&rectangle2, myCornflowerBlueBrush.Get());
 
         hr = myRenderTarget->EndDraw();
     }

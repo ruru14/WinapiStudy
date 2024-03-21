@@ -17,9 +17,12 @@
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <wincodec.h>
+#include <wrl/client.h>
 
 // My classes
 #include "MyBitmap.h"
+
+using namespace Microsoft::WRL;
 
 #if defined(_DEBUG) && defined(WIN32) && !defined(_AFX) && !defined(_AFXDLL)
 #define TRACE TRACE_WIN32
@@ -61,16 +64,16 @@ private:
 
 private:
     HWND myHwnd = nullptr;
-    ID2D1Factory* myDirect2dFactory = nullptr;
-    ID2D1HwndRenderTarget* myRenderTarget = nullptr;
-    ID2D1SolidColorBrush* myLightSlateGrayBrush = nullptr;
-    ID2D1SolidColorBrush* myCornflowerBlueBrush = nullptr;
+    ComPtr<ID2D1Factory> myDirect2dFactory;
+    ComPtr<ID2D1HwndRenderTarget> myRenderTarget;
+    ComPtr<ID2D1SolidColorBrush> myLightSlateGrayBrush;
+    ComPtr<ID2D1SolidColorBrush> myCornflowerBlueBrush;
 
-    IWICImagingFactory* myWICFactory = nullptr;
-    ID2D1Bitmap* myBitmap = nullptr;
+    ComPtr<IWICImagingFactory> myWICFactory;
+    ComPtr<ID2D1Bitmap> myBitmap;
 
-    MyBitmap* mySequenceBitmap = nullptr;
-    MyBitmap* myCharacterBitmap = nullptr;
+    std::shared_ptr<MyBitmap> mySequenceBitmap;
+    std::shared_ptr<MyBitmap> myCharacterBitmap;
     FLOAT MoveSpeed = 140.f;
     FLOAT MoveDirection[4] = {0.f, 0.f, 0.f, 0.f};
     bool isLeft = false;

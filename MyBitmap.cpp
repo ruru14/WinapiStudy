@@ -4,7 +4,7 @@ void MyBitmap::Tick(FLOAT deltaTime) {
 	elapseTime += deltaTime;
 }
 
-ID2D1Bitmap* MyBitmap::GetBitmap() {
+ComPtr<ID2D1Bitmap> MyBitmap::GetBitmap() {
 	if (bitmap.size() > 0) {
 		currentFrame = (UINT)elapseTime % bitmap.size();
 		return bitmap[currentFrame];
@@ -13,7 +13,7 @@ ID2D1Bitmap* MyBitmap::GetBitmap() {
 	}
 }
 
-void MyBitmap::Initialize(UINT frameCount, std::vector<ID2D1Bitmap*> bitmapArr) {
+void MyBitmap::Initialize(UINT frameCount, std::vector<ComPtr<ID2D1Bitmap>> bitmapArr) {
 	this->frameCount = frameCount;
 	currentFrame = 0;
 	bitmap = bitmapArr;
