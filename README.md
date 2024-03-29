@@ -1,1 +1,12 @@
-
+# [Direct2D] Device context 사용하기 (ID2D1DeviceContext)
+- https://milleatelier.tistory.com/156
+- 헤더 추가 및 변경
+  - d2d1.h -> d2d1_1.h
+  - d3d11.h추가
+- 함수 및 변수 추가 / 수정
+  - 추가 : CalculateD2DWindowSize (윈도우 크기 반환)
+  - 추가 : CreateDeviceContext (Device context, Swap chain 초기화)
+  - 수정 : CreateDeviceResources (Device context의 target지정)
+  - 수정 : LoadBitmapFromFile (함수 호출자 변경)
+  - 수정 : OnRender (함수 호출자 변경, Swap chain 적용)
+  - 수정 : OnResize (로직 변경)
