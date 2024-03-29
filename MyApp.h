@@ -13,11 +13,13 @@
 #include <iostream>
 
 // DirectX headers
-#include <d2d1.h>
+#include <d2d1_1.h>
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <wincodec.h>
 #include <wrl/client.h>
+
+#include <d3d11.h>
 
 // My classes
 #include "MyBitmap.h"
@@ -51,6 +53,7 @@ private:
     static LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     HRESULT CreateDeviceIndependentResources();
     HRESULT CreateDeviceResources();
+    HRESULT CreateDeviceContext();
     HRESULT LoadBitmapFromFile(
         PCWSTR uri,
         ID2D1Bitmap** ppBitmap);
@@ -62,15 +65,21 @@ private:
     void OnResize(UINT width, UINT height);
     void HandleKeyboardInput();
 
+    D2D1_SIZE_U CalculateD2DWindowSize();
+
 private:
     HWND myHwnd = nullptr;
-    ComPtr<ID2D1Factory> myDirect2dFactory;
-    ComPtr<ID2D1HwndRenderTarget> myRenderTarget;
+    ComPtr<ID2D1Factory1> myDirect2dFactory;
+    //ComPtr<ID2D1HwndRenderTarget> myRenderTarget;
     ComPtr<ID2D1SolidColorBrush> myLightSlateGrayBrush;
     ComPtr<ID2D1SolidColorBrush> myCornflowerBlueBrush;
 
-    ComPtr<IWICImagingFactory> myWICFactory;
+    ComPtr<IWICImagingFactory2> myWICFactory;
     ComPtr<ID2D1Bitmap> myBitmap;
+
+    ComPtr<ID2D1Device> myDirect2dDevice;
+    ComPtr<ID2D1DeviceContext> myDirect2dContext;
+    ComPtr<IDXGISwapChain> mySwapChain;
 
     std::shared_ptr<MyBitmap> mySequenceBitmap;
     std::shared_ptr<MyBitmap> myCharacterBitmap;

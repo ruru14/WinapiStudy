@@ -1,18 +1,25 @@
 #include "MyApp.h"
 
-MyApp::MyApp() {
+MyApp::MyApp() : 
+    myDirect2dFactory(nullptr),
+    myLightSlateGrayBrush(nullptr),
+    myCornflowerBlueBrush(nullptr),
+    myWICFactory(nullptr),
+    myBitmap(nullptr),
+    myDirect2dDevice(nullptr),
+    myDirect2dContext(nullptr),
+    mySwapChain(nullptr) {
 }
 
 MyApp::~MyApp() {
     DiscardDeviceResources();
-    //SAFE_RELEASE(myDirect2dFactory);
 }
 
 HRESULT MyApp::CreateDeviceIndependentResources() {
     HRESULT hr = S_OK;
     hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, IID_PPV_ARGS(&myDirect2dFactory));
     if (SUCCEEDED(hr)) {
-        hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, 
+        hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
             IID_PPV_ARGS(&myWICFactory));
     }
     mySequenceBitmap = std::make_shared<MyBitmap>();
@@ -23,26 +30,130 @@ HRESULT MyApp::CreateDeviceIndependentResources() {
 
 HRESULT MyApp::CreateDeviceResources() {
     HRESULT hr = S_OK;
-    if (!myRenderTarget) {
-        RECT rc; GetClientRect(myHwnd, &rc);
-        D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
 
-        hr = myDirect2dFactory->CreateHwndRenderTarget(
-            D2D1::RenderTargetProperties(),
-            D2D1::HwndRenderTargetProperties(myHwnd, size),
-            &myRenderTarget
+    if (!myDirect2dContext) {
+        hr = CreateDeviceContext();
+
+        ComPtr<IDXGISurface> surface = nullptr;
+        if (SUCCEEDED(hr)) {
+            hr = mySwapChain->GetBuffer(
+                0,
+                IID_PPV_ARGS(&surface)
+            );
+        }
+        ComPtr<ID2D1Bitmap1> bitmap = nullptr;
+        if (SUCCEEDED(hr)) {
+            FLOAT dpiX, dpiY;
+            dpiX = (FLOAT)GetDpiForWindow(GetDesktopWindow());
+            dpiY = dpiX;
+
+            D2D1_BITMAP_PROPERTIES1 properties = D2D1::BitmapProperties1(
+                D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+                D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_IGNORE
+                ),
+                dpiX,
+                dpiY
+            );
+
+            hr = myDirect2dContext->CreateBitmapFromDxgiSurface(
+                surface.Get(),
+                &properties,
+                &bitmap
+            );
+        }
+        if (SUCCEEDED(hr)) {
+            myDirect2dContext->SetTarget(bitmap.Get());
+        }
+
+        if (SUCCEEDED(hr)) {
+            hr = myDirect2dContext->CreateSolidColorBrush(
+                D2D1::ColorF(D2D1::ColorF::LightSlateGray), 
+                &myLightSlateGrayBrush
+            );
+        }
+        if (SUCCEEDED(hr)) {
+            hr = myDirect2dContext->CreateSolidColorBrush(
+                D2D1::ColorF(D2D1::ColorF::CornflowerBlue), 
+                &myCornflowerBlueBrush
+            );
+        }
+    }
+
+    return hr;
+}
+
+HRESULT MyApp::CreateDeviceContext() {
+    HRESULT hr = S_OK;
+
+    D2D1_SIZE_U size = CalculateD2DWindowSize();
+
+    UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+#ifdef _DEBUG
+    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+    D3D_DRIVER_TYPE driverTypes[] =
+    {
+        D3D_DRIVER_TYPE_HARDWARE,
+        D3D_DRIVER_TYPE_WARP,
+    };
+    UINT countOfDriverTypes = ARRAYSIZE(driverTypes);
+
+    DXGI_SWAP_CHAIN_DESC swapDescription;
+    ZeroMemory(&swapDescription, sizeof(swapDescription));
+    swapDescription.BufferDesc.Width = size.width;
+    swapDescription.BufferDesc.Height = size.height;
+    swapDescription.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    swapDescription.BufferDesc.RefreshRate.Numerator = 60;
+    swapDescription.BufferDesc.RefreshRate.Denominator = 1;
+    swapDescription.SampleDesc.Count = 1;
+    swapDescription.SampleDesc.Quality = 0;
+    swapDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapDescription.BufferCount = 1;
+    swapDescription.OutputWindow = myHwnd;
+    swapDescription.Windowed = TRUE;
+
+    ComPtr<ID3D11Device> d3dDevice;
+    for (UINT driverTypeIndex = 0; driverTypeIndex < countOfDriverTypes; driverTypeIndex++) {
+        hr = D3D11CreateDeviceAndSwapChain(
+            nullptr,
+            driverTypes[driverTypeIndex],
+            nullptr,
+            createDeviceFlags,
+            nullptr,
+            0,
+            D3D11_SDK_VERSION,
+            &swapDescription,
+            &mySwapChain,
+            &d3dDevice,
+            nullptr,
+            nullptr
         );
 
         if (SUCCEEDED(hr)) {
-            hr = myRenderTarget->CreateSolidColorBrush(
-                D2D1::ColorF(D2D1::ColorF::LightSlateGray), &myLightSlateGrayBrush
-            );
+            break;
         }
-        if (SUCCEEDED(hr)) {
-            hr = myRenderTarget->CreateSolidColorBrush(
-                D2D1::ColorF(D2D1::ColorF::CornflowerBlue), &myCornflowerBlueBrush
-            );
-        }
+    }
+
+    ComPtr<IDXGIDevice> dxgiDevice;
+    if (SUCCEEDED(hr)) {
+        hr = d3dDevice->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+    }
+
+    if (SUCCEEDED(hr)) {
+        hr = myDirect2dFactory->CreateDevice(
+            dxgiDevice.Get(),
+            &myDirect2dDevice
+        );
+    }
+    if (SUCCEEDED(hr)) {
+        hr = myDirect2dDevice->CreateDeviceContext(
+            D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+            &myDirect2dContext
+        );
     }
 
     return hr;
@@ -56,7 +167,7 @@ HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
     ComPtr<IWICBitmapScaler> pScaler;
 
     if (!myWICFactory) CreateDeviceIndependentResources();
-    if (!myRenderTarget) CreateDeviceResources();
+    if (!myDirect2dContext) CreateDeviceContext();
 
     HRESULT hr = myWICFactory->CreateDecoderFromFilename(
         uri,
@@ -84,7 +195,7 @@ HRESULT MyApp::LoadBitmapFromFile(PCWSTR uri, ID2D1Bitmap** ppBitmap) {
         );
     }
     if (SUCCEEDED(hr)) {
-        hr = myRenderTarget->CreateBitmapFromWicBitmap(
+        hr = myDirect2dContext->CreateBitmapFromWicBitmap(
             pConverter.Get(),
             NULL,
             ppBitmap
@@ -99,7 +210,7 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
     std::vector<ComPtr<ID2D1Bitmap>> bitmapArr;
 
     if (!myWICFactory) CreateDeviceIndependentResources();
-    if (!myRenderTarget) CreateDeviceResources();
+    if (!myDirect2dContext) CreateDeviceContext();
 
     HRESULT hr = myWICFactory->CreateDecoderFromFilename(
         uri,
@@ -135,7 +246,7 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
                 );
             }
             if (SUCCEEDED(hr)) {
-                hr = myRenderTarget->CreateBitmapFromWicBitmap(
+                hr = myDirect2dContext->CreateBitmapFromWicBitmap(
                     pConverter.Get(),
                     NULL,
                     &tmpBitmap
@@ -155,9 +266,6 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
 }
 
 void MyApp::DiscardDeviceResources() {
-    //SAFE_RELEASE(myBitmap);
-    //SAFE_RELEASE(myLightSlateGrayBrush);
-    //SAFE_RELEASE(myCornflowerBlueBrush);
 }
 
 HRESULT MyApp::initialize(HINSTANCE hInstance) {
@@ -251,9 +359,9 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 break;
             case WM_SIZE:
             {
-            UINT width = LOWORD(lParam);
-            UINT height = HIWORD(lParam);
-            myApp->OnResize(width, height);
+                UINT width = LOWORD(lParam);
+                UINT height = HIWORD(lParam);
+                myApp->OnResize(width, height);
             }
                 result = 0; wasHandled = true;
                 break;
@@ -263,7 +371,6 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 break;
             case WM_PAINT:
                 myApp->OnRender();
-                //ValidateRect(hWnd, NULL);
                 result = 0; wasHandled = true;
                 break;
             case WM_DESTROY:
@@ -283,8 +390,55 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 void MyApp::OnResize(UINT width, UINT height) {
-    if (myRenderTarget) {
-        myRenderTarget->Resize(D2D1::SizeU(width, height));
+    if (myDirect2dContext) {
+        HRESULT hr = S_OK;
+
+        myDirect2dContext->SetTarget(nullptr);
+
+        if (SUCCEEDED(hr)) {
+            hr = mySwapChain->ResizeBuffers(
+                0,
+                width,
+                height,
+                DXGI_FORMAT_B8G8R8A8_UNORM,
+                0
+            );
+        }
+
+        ComPtr<IDXGISurface> surface = nullptr;
+        if (SUCCEEDED(hr)) {
+            hr = mySwapChain->GetBuffer(
+                0,
+                IID_PPV_ARGS(&surface)
+            );
+        }
+
+        ComPtr<ID2D1Bitmap1> bitmap = nullptr;
+        if (SUCCEEDED(hr)) {
+            FLOAT dpiX, dpiY;
+            dpiX = (FLOAT)GetDpiForWindow(GetDesktopWindow());
+            dpiY = dpiX;
+            D2D1_BITMAP_PROPERTIES1 properties = D2D1::BitmapProperties1(
+                D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+                D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_IGNORE
+                ),
+                dpiX,
+                dpiY
+            );
+            hr = myDirect2dContext->CreateBitmapFromDxgiSurface(
+                surface.Get(),
+                &properties,
+                &bitmap
+            );
+        }
+
+        if (SUCCEEDED(hr)) {
+            myDirect2dContext->SetTarget(bitmap.Get());
+        }
+
+        InvalidateRect(myHwnd, nullptr, FALSE);
     }
 }
 
@@ -360,6 +514,17 @@ void MyApp::HandleKeyboardInput() {
     }
 }
 
+D2D1_SIZE_U MyApp::CalculateD2DWindowSize() {
+    RECT rc;
+    GetClientRect(myHwnd, &rc);
+
+    D2D1_SIZE_U d2dWindowSize = { 0 };
+    d2dWindowSize.width = rc.right;
+    d2dWindowSize.height = rc.bottom;
+
+    return d2dWindowSize;
+}
+
 HRESULT MyApp::OnRender() {
     HRESULT hr = S_OK;
     hr = CreateDeviceResources();
@@ -384,17 +549,17 @@ HRESULT MyApp::OnRender() {
         mySequenceBitmap->Tick(deltaTime);
         myCharacterBitmap->Tick(deltaTime);
 
-        myRenderTarget->BeginDraw();
-        myRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-        myRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+        myDirect2dContext->BeginDraw();
+        myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Identity());
+        myDirect2dContext->Clear(D2D1::ColorF(D2D1::ColorF::White));
         
-        D2D1_SIZE_F rtSize = myRenderTarget->GetSize();
+        D2D1_SIZE_F rtSize = myDirect2dContext->GetSize();
 
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
 
         if (myBitmap) {
-            myRenderTarget->DrawBitmap(myBitmap.Get(),
+            myDirect2dContext->DrawBitmap(myBitmap.Get(),
                 D2D1::RectF(
                     0.0f, 0.0f,
                     rtSize.width, rtSize.height
@@ -405,7 +570,7 @@ HRESULT MyApp::OnRender() {
         if (mySequenceBitmap) {
             ComPtr<ID2D1Bitmap> tmp = mySequenceBitmap->GetBitmap();
             if (tmp) {
-                myRenderTarget->DrawBitmap(tmp.Get(),
+                myDirect2dContext->DrawBitmap(tmp.Get(),
                     mySequenceBitmap->GetBitmapPosition()
                 );
             }
@@ -419,22 +584,21 @@ HRESULT MyApp::OnRender() {
             if (tmp) {
                 D2D1_RECT_F ps = myCharacterBitmap->GetBitmapPosition();
                 D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
-                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
-                //myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(-1.f, 1.f, center));
-                myRenderTarget->DrawBitmap(tmp.Get(),
+                myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
+                myDirect2dContext->DrawBitmap(tmp.Get(),
                     ps
                 );
-                myRenderTarget->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
+                myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
             }
         }
 
         for (int x = 0; x < width; x += 10) {
-            myRenderTarget->DrawLine(D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
+            myDirect2dContext->DrawLine(D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
                 D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
                 myLightSlateGrayBrush.Get(), 0.5f);
         }
         for (int y = 0; y < height; y += 10) {
-            myRenderTarget->DrawLine(D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
+            myDirect2dContext->DrawLine(D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
                 D2D1::Point2F(rtSize.width, static_cast<FLOAT>(y)),
                 myLightSlateGrayBrush.Get(), 0.5f);
         }
@@ -447,10 +611,14 @@ HRESULT MyApp::OnRender() {
             rtSize.width / 2 - 100.0f, rtSize.height / 2 - 100.0f,
             rtSize.width / 2 + 100.0f, rtSize.height / 2 + 100.0f
         );
-        myRenderTarget->FillRectangle(&rectangle1, myLightSlateGrayBrush.Get());
-        myRenderTarget->DrawRectangle(&rectangle2, myCornflowerBlueBrush.Get());
+        myDirect2dContext->FillRectangle(&rectangle1, myLightSlateGrayBrush.Get());
+        myDirect2dContext->DrawRectangle(&rectangle2, myCornflowerBlueBrush.Get());
 
-        hr = myRenderTarget->EndDraw();
+        hr = myDirect2dContext->EndDraw();
+    }
+
+    if (SUCCEEDED(hr)) {
+        hr = mySwapChain->Present(0, 0);
     }
 
     if (hr == D2DERR_RECREATE_TARGET) {
@@ -472,6 +640,7 @@ int WinMain(
         if (SUCCEEDED(app->initialize(hInstance))) {
             app->runMessageLoop();
         }
+        CoUninitialize();
     }
 
     return 0;
