@@ -15,6 +15,7 @@
 // DirectX headers
 #include <d2d1_1.h>
 #include <d2d1helper.h>
+#include <d2d1effects_2.h>
 #include <dwrite.h>
 #include <wincodec.h>
 #include <wrl/client.h>

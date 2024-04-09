@@ -570,9 +570,8 @@ HRESULT MyApp::OnRender() {
         if (mySequenceBitmap) {
             ComPtr<ID2D1Bitmap> tmp = mySequenceBitmap->GetBitmap();
             if (tmp) {
-                myDirect2dContext->DrawBitmap(tmp.Get(),
-                    mySequenceBitmap->GetBitmapPosition()
-                );
+                myDirect2dContext->DrawImage(tmp.Get(), 
+                    mySequenceBitmap->GetBitmapPosition());
             }
         }
 
@@ -582,13 +581,28 @@ HRESULT MyApp::OnRender() {
         if (myCharacterBitmap) {
             ComPtr<ID2D1Bitmap> tmp = myCharacterBitmap->GetBitmap();
             if (tmp) {
-                D2D1_RECT_F ps = myCharacterBitmap->GetBitmapPosition();
-                D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
-                myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
-                myDirect2dContext->DrawBitmap(tmp.Get(),
-                    ps
+                ComPtr<ID2D1Effect> affineTransformEffect;
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D12DAffineTransform,
+                    &affineTransformEffect
                 );
-                myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
+                affineTransformEffect->SetInput(0, tmp.Get());
+
+                auto size = tmp->GetPixelSize();
+                D2D1_POINT_2F ps = myCharacterBitmap->GetBitmapPosition();
+                //D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
+
+                affineTransformEffect->SetValue(                 
+                    D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX, 
+                    D2D1::Matrix3x2F::Scale(D2D1::SizeF((isLeft ? -1 : 1)*0.5f, 0.5f), D2D1::Point2F(size.width/2, size.height/2))
+                );
+
+                //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
+                /*myDirect2dContext->DrawBitmap(tmp.Get(),
+                    ps
+                );*/
+                myDirect2dContext->DrawImage(affineTransformEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 150.f));
+                //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
             }
         }
 
