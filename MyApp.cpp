@@ -582,19 +582,60 @@ HRESULT MyApp::OnRender() {
             ComPtr<ID2D1Bitmap> tmp = myCharacterBitmap->GetBitmap();
             if (tmp) {
                 ComPtr<ID2D1Effect> affineTransformEffect;
+                ComPtr<ID2D1Effect> colorMatrixEffect;
+                ComPtr<ID2D1Effect> colorMatrixEffect2;
                 myDirect2dContext->CreateEffect(
                     CLSID_D2D12DAffineTransform,
                     &affineTransformEffect
                 );
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D1ColorMatrix,
+                    &colorMatrixEffect
+                );
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D1ColorMatrix,
+                    &colorMatrixEffect2
+                );
                 affineTransformEffect->SetInput(0, tmp.Get());
+                colorMatrixEffect->SetInputEffect(0, affineTransformEffect.Get());
+                colorMatrixEffect2->SetInputEffect(0, colorMatrixEffect.Get());
 
                 auto size = tmp->GetPixelSize();
                 D2D1_POINT_2F ps = myCharacterBitmap->GetBitmapPosition();
                 //D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
 
+                // Affine transform
                 affineTransformEffect->SetValue(                 
                     D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX, 
-                    D2D1::Matrix3x2F::Scale(D2D1::SizeF((isLeft ? -1 : 1)*0.5f, 0.5f), D2D1::Point2F(size.width/2, size.height/2))
+                    D2D1::Matrix3x2F::Scale(D2D1::SizeF((isLeft ? -1 : 1)*0.2f, 0.2f), D2D1::Point2F(size.width/2, size.height/2))
+                );
+
+                // Color matrix 1
+                D2D1_MATRIX_5X4_F matrix = D2D1::Matrix5x4F(
+                    0, 0, 0, 0, 
+                    0, 0, 0, 0, 
+                    0, 0, 0, 0, 
+                    0, 0, 0, 100, 
+                    0, 1, 0, 0);
+                colorMatrixEffect->SetValue(
+                    D2D1_COLORMATRIX_PROP_COLOR_MATRIX,
+                    matrix
+                );
+                colorMatrixEffect->SetValue(
+                    D2D1_COLORMATRIX_PROP_CLAMP_OUTPUT,
+                    TRUE
+                );
+
+                // Color matrix 2
+                D2D1_MATRIX_5X4_F matrix2 = D2D1::Matrix5x4F(
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 0.5,
+                    0, 0, 0, 0);
+                colorMatrixEffect2->SetValue(
+                    D2D1_COLORMATRIX_PROP_COLOR_MATRIX,
+                    matrix2
                 );
 
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
@@ -602,6 +643,9 @@ HRESULT MyApp::OnRender() {
                     ps
                 );*/
                 myDirect2dContext->DrawImage(affineTransformEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 150.f));
+                myDirect2dContext->DrawImage(colorMatrixEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 50.f));
+                myDirect2dContext->DrawImage(colorMatrixEffect2.Get(), D2D1::Point2F(ps.x - 175.f, ps.y + 50.f));
+
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
             }
         }
