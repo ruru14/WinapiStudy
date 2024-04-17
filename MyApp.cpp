@@ -581,16 +581,15 @@ HRESULT MyApp::OnRender() {
         if (myCharacterBitmap) {
             ComPtr<ID2D1Bitmap> tmp = myCharacterBitmap->GetBitmap();
             if (tmp) {
+                // Affine transform init
                 ComPtr<ID2D1Effect> affineTransformEffect;
-                ComPtr<ID2D1Effect> colorMatrixEffect;
-                ComPtr<ID2D1Effect> colorMatrixEffect2;
-                ComPtr<ID2D1Effect> edgeDetectionEffect;
-                ComPtr<ID2D1Effect> edgeDetectionEffect2;
-                ComPtr<ID2D1Effect> edgeDetectionEffect3;
                 myDirect2dContext->CreateEffect(
                     CLSID_D2D12DAffineTransform,
                     &affineTransformEffect
                 );
+                // Color matrix init
+                ComPtr<ID2D1Effect> colorMatrixEffect;
+                ComPtr<ID2D1Effect> colorMatrixEffect2;
                 myDirect2dContext->CreateEffect(
                     CLSID_D2D1ColorMatrix,
                     &colorMatrixEffect
@@ -599,6 +598,10 @@ HRESULT MyApp::OnRender() {
                     CLSID_D2D1ColorMatrix,
                     &colorMatrixEffect2
                 );
+                // Edge detection init
+                ComPtr<ID2D1Effect> edgeDetectionEffect;
+                ComPtr<ID2D1Effect> edgeDetectionEffect2;
+                ComPtr<ID2D1Effect> edgeDetectionEffect3;
                 myDirect2dContext->CreateEffect(
                     CLSID_D2D1EdgeDetection,
                     &edgeDetectionEffect
@@ -611,13 +614,35 @@ HRESULT MyApp::OnRender() {
                     CLSID_D2D1EdgeDetection,
                     &edgeDetectionEffect3
                 );
+                // Chromakey init
+                ComPtr<ID2D1Effect> chromakeyEffect;
+                ComPtr<ID2D1Effect> chromakeyEffect2;
+                ComPtr<ID2D1Effect> chromakeyEffect3;
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D1ChromaKey,
+                    &chromakeyEffect
+                );
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D1ChromaKey,
+                    &chromakeyEffect2
+                );
+                myDirect2dContext->CreateEffect(
+                    CLSID_D2D1ChromaKey,
+                    &chromakeyEffect3
+                );
+                // Affine transform input
                 affineTransformEffect->SetInput(0, tmp.Get());
+                // Color matrix input
                 colorMatrixEffect->SetInputEffect(0, affineTransformEffect.Get());
                 colorMatrixEffect2->SetInputEffect(0, colorMatrixEffect.Get());
-
+                // Edge detection input
                 edgeDetectionEffect->SetInputEffect(0, affineTransformEffect.Get());
                 edgeDetectionEffect2->SetInputEffect(0, colorMatrixEffect.Get());
                 edgeDetectionEffect3->SetInputEffect(0, colorMatrixEffect2.Get());
+                // Chromakey input
+                chromakeyEffect->SetInputEffect(0, edgeDetectionEffect.Get());
+                chromakeyEffect2->SetInputEffect(0, edgeDetectionEffect2.Get());
+                chromakeyEffect3->SetInputEffect(0, edgeDetectionEffect3.Get());
 
                 auto size = tmp->GetPixelSize();
                 D2D1_POINT_2F ps = myCharacterBitmap->GetBitmapPosition();
@@ -661,13 +686,19 @@ HRESULT MyApp::OnRender() {
                 /*myDirect2dContext->DrawBitmap(tmp.Get(),
                     ps
                 );*/
+                // Print image (affine, color matrix)
                 myDirect2dContext->DrawImage(affineTransformEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 200.f));
                 myDirect2dContext->DrawImage(colorMatrixEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 70.f));
                 myDirect2dContext->DrawImage(colorMatrixEffect2.Get(), D2D1::Point2F(ps.x - 175.f, ps.y + 60.f));
-
+                // Print image (edge detection)
                 myDirect2dContext->DrawImage(edgeDetectionEffect.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 200.f));
                 myDirect2dContext->DrawImage(edgeDetectionEffect2.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 70.f));
                 myDirect2dContext->DrawImage(edgeDetectionEffect3.Get(), D2D1::Point2F(ps.x - 25.f, ps.y + 60.f));
+                // Print image (chromakey)
+                myDirect2dContext->DrawImage(chromakeyEffect.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 200.f));
+                myDirect2dContext->DrawImage(chromakeyEffect2.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 70.f));
+                myDirect2dContext->DrawImage(chromakeyEffect3.Get(), D2D1::Point2F(ps.x + 125.f, ps.y + 60.f));
+
 
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));
             }
