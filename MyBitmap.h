@@ -15,6 +15,7 @@ public:
 	ComPtr<ID2D1Bitmap> GetBitmap();
 	void Initialize(UINT frameCount, std::vector<ComPtr<ID2D1Bitmap>> bitmapArr);
 	D2D1_POINT_2F GetBitmapPosition();
+	D2D1_POINT_2F GetBitmapDrawOffset();
 	void SetPosition(FLOAT x, FLOAT y);
 	void Move(FLOAT x, FLOAT y);
 	void SetScale(FLOAT x, FLOAT y);

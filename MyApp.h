@@ -62,6 +62,7 @@ private:
         PCWSTR uri,
         MyBitmap* myBitmap);
     void DiscardDeviceResources();
+    void Update();
     HRESULT OnRender();
     void OnResize(UINT width, UINT height);
     void HandleKeyboardInput();
@@ -85,6 +86,8 @@ private:
     std::shared_ptr<MyBitmap> mySequenceBitmap;
     std::shared_ptr<MyBitmap> myCharacterBitmap;
     FLOAT MoveSpeed = 140.f;
+    FLOAT gravity = 98.f;
+    FLOAT downSpeed = 10.f;
     FLOAT MoveDirection[4] = {0.f, 0.f, 0.f, 0.f};
     bool isLeft = false;
 

@@ -268,6 +268,38 @@ HRESULT MyApp::LoadBitmapFromFile2(PCWSTR uri, MyBitmap* myBitmap) {
 void MyApp::DiscardDeviceResources() {
 }
 
+void MyApp::Update() {
+    LARGE_INTEGER currentTime;
+    QueryPerformanceCounter(&currentTime);
+    FLOAT deltaTime = (FLOAT)(
+        (DOUBLE)(currentTime.QuadPart - myPrevTime.QuadPart) / (DOUBLE)(myFrequency.QuadPart)
+        );
+    myPrevTime = currentTime;
+
+    frameTime.push_back(deltaTime);
+    while (frameTime.size() > frameAvgCount) frameTime.pop_front();
+
+    FLOAT totalTime = 0.0f;
+    for (auto& i : frameTime) {
+        totalTime += i;
+    }
+    FLOAT frameRate = 1 / (totalTime / frameAvgCount);
+
+    mySequenceBitmap->Tick(deltaTime);
+    myCharacterBitmap->Tick(deltaTime);
+
+    mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
+
+    FLOAT deltaDown = deltaTime * downSpeed;
+    downSpeed += deltaTime * gravity;
+    myCharacterBitmap->Move(
+        deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
+        0);
+    myCharacterBitmap->Move(
+        0,
+        deltaDown);
+}
+
 HRESULT MyApp::initialize(HINSTANCE hInstance) {
     QueryPerformanceFrequency(&myFrequency);
     QueryPerformanceCounter(&myPrevTime);
@@ -301,7 +333,7 @@ HRESULT MyApp::initialize(HINSTANCE hInstance) {
 
     LoadBitmapFromFile(L"dx_logo.png", &myBitmap);
     LoadBitmapFromFile2(L"loading.gif", mySequenceBitmap.get());
-    LoadBitmapFromFile2(L"snail.png", myCharacterBitmap.get());
+    LoadBitmapFromFile2(L"snail_small.png", myCharacterBitmap.get());
     myCharacterBitmap->SetScale(0.5f, 0.5f);
 
     return hr;
@@ -370,6 +402,7 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 result = 0; wasHandled = true;
                 break;
             case WM_PAINT:
+                myApp->Update();
                 myApp->OnRender();
                 result = 0; wasHandled = true;
                 break;
@@ -529,25 +562,6 @@ HRESULT MyApp::OnRender() {
     HRESULT hr = S_OK;
     hr = CreateDeviceResources();
     if (SUCCEEDED(hr)) {
-        LARGE_INTEGER currentTime;
-        QueryPerformanceCounter(&currentTime);
-        FLOAT deltaTime = (FLOAT)(
-            (DOUBLE)(currentTime.QuadPart - myPrevTime.QuadPart) / (DOUBLE)(myFrequency.QuadPart)
-            );
-        myPrevTime = currentTime;
-
-        frameTime.push_back(deltaTime);
-        while (frameTime.size() > frameAvgCount) frameTime.pop_front();
-
-        FLOAT totalTime = 0.0f;
-        for (auto& i : frameTime) {
-            totalTime += i;
-        }
-        FLOAT frameRate = 1 / (totalTime / frameAvgCount);
-        //std::cout << frameRate << "\n";
-
-        mySequenceBitmap->Tick(deltaTime);
-        myCharacterBitmap->Tick(deltaTime);
 
         myDirect2dContext->BeginDraw();
         myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Identity());
@@ -566,7 +580,6 @@ HRESULT MyApp::OnRender() {
                 ));
         }
 
-        mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
         if (mySequenceBitmap) {
             ComPtr<ID2D1Bitmap> tmp = mySequenceBitmap->GetBitmap();
             if (tmp) {
@@ -575,9 +588,6 @@ HRESULT MyApp::OnRender() {
             }
         }
 
-        myCharacterBitmap->Move(
-            deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
-            deltaTime * MoveSpeed * (MoveDirection[1] + MoveDirection[3]));
         if (myCharacterBitmap) {
             ComPtr<ID2D1Bitmap> tmp = myCharacterBitmap->GetBitmap();
             if (tmp) {
@@ -645,13 +655,13 @@ HRESULT MyApp::OnRender() {
                 chromakeyEffect3->SetInputEffect(0, edgeDetectionEffect3.Get());
 
                 auto size = tmp->GetPixelSize();
-                D2D1_POINT_2F ps = myCharacterBitmap->GetBitmapPosition();
+                D2D1_POINT_2F ps = myCharacterBitmap->GetBitmapDrawOffset();
                 //D2D1_POINT_2F center = D2D1::Point2F(ps.right - ((ps.right - ps.left) / 2), ps.bottom - ((ps.bottom - ps.top) / 2));
 
                 // Affine transform
                 affineTransformEffect->SetValue(                 
                     D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX, 
-                    D2D1::Matrix3x2F::Scale(D2D1::SizeF((isLeft ? -1 : 1)*0.2f, 0.2f), D2D1::Point2F(size.width/2, size.height/2))
+                    D2D1::Matrix3x2F::Scale(D2D1::SizeF((isLeft ? -1 : 1)*1.f, 1.f), D2D1::Point2F(size.width/2, size.height/2))
                 );
 
                 // Color matrix 1
@@ -682,22 +692,31 @@ HRESULT MyApp::OnRender() {
                     matrix2
                 );
 
+                D2D1_RECT_F rect;
+                UINT rectC;
+                ComPtr<ID2D1Image> tmpImg;
+                affineTransformEffect->QueryInterface(IID_PPV_ARGS(&tmpImg));
+                myDirect2dContext->GetImageLocalBounds(tmpImg.Get(), &rect);
+                //ComPtr<ID2D1Image> affineImage(ConvertEffectToImage(affineTransformEffect.Get()));
+                //myDirect2dContext->GetImageLocalBounds(affineImage.Get(), &rect);
+                //std::cout << rect.bottom << " " << rect.left << " " << rect.right << " " << rect.top << " : " << "\n";
+                myDirect2dContext->FillRectangle(&rect, myLightSlateGrayBrush.Get());
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
                 /*myDirect2dContext->DrawBitmap(tmp.Get(),
                     ps
                 );*/
                 // Print image (affine, color matrix)
-                myDirect2dContext->DrawImage(affineTransformEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 200.f));
-                myDirect2dContext->DrawImage(colorMatrixEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 70.f));
-                myDirect2dContext->DrawImage(colorMatrixEffect2.Get(), D2D1::Point2F(ps.x - 175.f, ps.y + 60.f));
-                // Print image (edge detection)
-                myDirect2dContext->DrawImage(edgeDetectionEffect.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 200.f));
-                myDirect2dContext->DrawImage(edgeDetectionEffect2.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 70.f));
-                myDirect2dContext->DrawImage(edgeDetectionEffect3.Get(), D2D1::Point2F(ps.x - 25.f, ps.y + 60.f));
-                // Print image (chromakey)
-                myDirect2dContext->DrawImage(chromakeyEffect.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 200.f));
-                myDirect2dContext->DrawImage(chromakeyEffect2.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 70.f));
-                myDirect2dContext->DrawImage(chromakeyEffect3.Get(), D2D1::Point2F(ps.x + 125.f, ps.y + 60.f));
+                myDirect2dContext->DrawImage(tmpImg.Get(), D2D1::Point2F(ps.x - 0.f, ps.y - 0.f));
+                //myDirect2dContext->DrawImage(colorMatrixEffect.Get(), D2D1::Point2F(ps.x - 175.f, ps.y - 70.f));
+                //myDirect2dContext->DrawImage(colorMatrixEffect2.Get(), D2D1::Point2F(ps.x - 175.f, ps.y + 60.f));
+                //// Print image (edge detection)
+                //myDirect2dContext->DrawImage(edgeDetectionEffect.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 200.f));
+                //myDirect2dContext->DrawImage(edgeDetectionEffect2.Get(), D2D1::Point2F(ps.x - 25.f, ps.y - 70.f));
+                //myDirect2dContext->DrawImage(edgeDetectionEffect3.Get(), D2D1::Point2F(ps.x - 25.f, ps.y + 60.f));
+                //// Print image (chromakey)
+                //myDirect2dContext->DrawImage(chromakeyEffect.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 200.f));
+                //myDirect2dContext->DrawImage(chromakeyEffect2.Get(), D2D1::Point2F(ps.x + 125.f, ps.y - 70.f));
+                //myDirect2dContext->DrawImage(chromakeyEffect3.Get(), D2D1::Point2F(ps.x + 125.f, ps.y + 60.f));
 
 
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale(1.f, 1.f));

@@ -20,13 +20,23 @@ void MyBitmap::Initialize(UINT frameCount, std::vector<ComPtr<ID2D1Bitmap>> bitm
 	for (auto& i : bitmap) {
 		bitmapSize.push_back(i->GetSize());
 	}
-	currentPosition = D2D1::Point2F(0.f, 0.f);
+	auto tmp = bitmap[0]->GetPixelSize();
+	currentPosition = D2D1::Point2F(tmp.width/2, tmp.height);
+	//currentPosition = D2D1::Point2F(0.f, 0.f);
 }
 
 D2D1_POINT_2F MyBitmap::GetBitmapPosition() {
 	return D2D1::Point2F(
 		currentPosition.x,
 		currentPosition.y
+	);
+}
+
+D2D1_POINT_2F MyBitmap::GetBitmapDrawOffset() {
+	auto tmp = bitmap[0]->GetPixelSize();
+	return D2D1::Point2F(
+		currentPosition.x - tmp.width / 2,
+		currentPosition.y - tmp.height
 	);
 }
 
