@@ -291,6 +291,16 @@ void MyApp::Update() {
     mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
 
     FLOAT deltaDown = deltaTime * downSpeed;
+
+    D2D1_RECT_F t = myCharacterBitmap->GetBitmapRect();
+    std::cout << t.left << ", " << t.top << ", " << t.right << ", " << t.bottom << "\n";
+    for (auto& i : ground) {
+        if (IsCollision(t, i)) {
+            downSpeed = 0;
+            deltaDown = 0;
+        }
+    }
+
     downSpeed += deltaTime * gravity;
     myCharacterBitmap->Move(
         deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
@@ -547,6 +557,39 @@ void MyApp::HandleKeyboardInput() {
     }
 }
 
+bool MyApp::IsCollision(D2D1_RECT_F a, D2D1_RECT_F b) {
+    /*
+    Is the RIGHT edge of r1 to the RIGHT of the LEFT edge of r2?
+    Is the LEFT edge of r1 to the LEFT of the RIGHT edge of r2?
+    Is the BOTTOM edge of r1 BELOW the TOP edge of r2?
+    Is the TOP edge of r1 ABOVE the BOTTOM edge of r2?
+    */
+    //if (r1x + r1w >= r2x &&    // r1 right edge past r2 left
+    //    r1x <= r2x + r2w &&    // r1 left edge past r2 right
+    //    r1y + r1h >= r2y &&    // r1 top edge past r2 bottom
+    //    r1y <= r2y + r2h) {    // r1 bottom edge past r2 top
+    //    return true;
+    /*
+    * a.right > b.left
+    * a.left < b.right
+    * a.bottom > b.top
+    * a.top < b.bottom
+    */
+
+    if (a.right >= b.left &&
+        a.left <= b.right &&
+        a.bottom >= b.top &&
+        a.top <= b.bottom)
+        return true;
+
+    /*if (a.right > b.left) return true;
+    if (a.left < b.right) return true;
+    if (a.bottom > b.top) return true;
+    if (a.top < b.bottom) return true;*/
+
+    return false;
+}
+
 D2D1_SIZE_U MyApp::CalculateD2DWindowSize() {
     RECT rc;
     GetClientRect(myHwnd, &rc);
@@ -571,6 +614,10 @@ HRESULT MyApp::OnRender() {
 
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
+
+        for (auto& i : ground) {
+            myDirect2dContext->FillRectangle(&i, myCornflowerBlueBrush.Get());
+        }
 
         if (myBitmap) {
             myDirect2dContext->DrawBitmap(myBitmap.Get(),
@@ -700,7 +747,7 @@ HRESULT MyApp::OnRender() {
                 //ComPtr<ID2D1Image> affineImage(ConvertEffectToImage(affineTransformEffect.Get()));
                 //myDirect2dContext->GetImageLocalBounds(affineImage.Get(), &rect);
                 //std::cout << rect.bottom << " " << rect.left << " " << rect.right << " " << rect.top << " : " << "\n";
-                myDirect2dContext->FillRectangle(&rect, myLightSlateGrayBrush.Get());
+                //myDirect2dContext->FillRectangle(myCharacterBitmap->GetBitmapRect(), myLightSlateGrayBrush.Get());
                 //myDirect2dContext->SetTransform(D2D1::Matrix3x2F::Scale((isLeft ? -1 : 1), 1.f, center));
                 /*myDirect2dContext->DrawBitmap(tmp.Get(),
                     ps

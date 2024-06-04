@@ -66,6 +66,7 @@ private:
     HRESULT OnRender();
     void OnResize(UINT width, UINT height);
     void HandleKeyboardInput();
+    bool IsCollision(D2D1_RECT_F a, D2D1_RECT_F b);
 
     D2D1_SIZE_U CalculateD2DWindowSize();
 
@@ -99,4 +100,8 @@ private:
 
     std::map<DWORD, bool> inputFlag;
 
+    std::vector<D2D1_RECT_F> ground = {
+        D2D1::RectF(0.0f, 400.f, 640.f, 480.f),
+        D2D1::RectF(200.0f, 350.f, 440.f, 410.f)
+    };
 };
