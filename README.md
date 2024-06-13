@@ -21,3 +21,5 @@ Direct2D로 횡스크롤 게임에 사용되는 요소들을 공부, 개발하�
 |ID2D1Effect : Edge detection|[Link](https://github.com/ruru14/WinapiStudy/tree/blog_240417)|[Link](https://milleatelier.tistory.com/160)|
 |ID2D1Effect : Chroma key|[Link](https://github.com/ruru14/WinapiStudy/tree/blog_240422)|[Link](https://milleatelier.tistory.com/161)|
 |등속 운동, 등가속 운동, 중력 구현|[Link](https://github.com/ruru14/WinapiStudy/tree/blog_240517)|[Link](https://milleatelier.tistory.com/162)|
+|충돌 및 지형 구|[Link](https://github.com/ruru14/WinapiStudy/tree/blog_240604)|[Link](https://milleatelier.tistory.com/163)|
+|점프 구현|[Link](https://github.com/ruru14/WinapiStudy/tree/blog_240613)|[Link](https://milleatelier.tistory.com/164)|
