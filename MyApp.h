@@ -87,9 +87,12 @@ private:
     std::shared_ptr<MyBitmap> mySequenceBitmap;
     std::shared_ptr<MyBitmap> myCharacterBitmap;
     FLOAT MoveSpeed = 140.f;
-    FLOAT gravity = 98.f;
+    FLOAT gravity = 1000.f;
+    FLOAT jumpPower = -300.f;
     FLOAT downSpeed = 10.f;
     FLOAT MoveDirection[4] = {0.f, 0.f, 0.f, 0.f};
+    int maxJumpCount = 2;
+    int curJumpCount = 0;
     bool isLeft = false;
 
     LARGE_INTEGER myPrevTime;

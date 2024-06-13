@@ -291,17 +291,20 @@ void MyApp::Update() {
     mySequenceBitmap->Move(deltaTime * 10, deltaTime * 10);
 
     FLOAT deltaDown = deltaTime * downSpeed;
+    downSpeed += deltaTime * gravity;
 
     D2D1_RECT_F t = myCharacterBitmap->GetBitmapRect();
-    std::cout << t.left << ", " << t.top << ", " << t.right << ", " << t.bottom << "\n";
+    //std::cout << t.left << ", " << t.top << ", " << t.right << ", " << t.bottom << "\n";
     for (auto& i : ground) {
-        if (IsCollision(t, i)) {
+        if (!(i.left <= t.right && i.right >= t.left)) continue;
+        float groundDist = abs(i.top - t.bottom);
+        if (groundDist <= deltaDown) {
+            deltaDown = groundDist;
+            curJumpCount = 0;
             downSpeed = 0;
-            deltaDown = 0;
         }
     }
 
-    downSpeed += deltaTime * gravity;
     myCharacterBitmap->Move(
         deltaTime * MoveSpeed * (MoveDirection[0] + MoveDirection[2]),
         0);
@@ -553,6 +556,19 @@ void MyApp::HandleKeyboardInput() {
             inputFlag[VK_DOWN] = false;
             MoveDirection[3] = 0;
             std::cout << "Release VK_DOWN\n";
+        }
+    }
+    if (GetAsyncKeyState(VK_MENU) & 0x8000) {
+        if (!inputFlag[VK_MENU]) {
+            inputFlag[VK_MENU] = true;
+            if (curJumpCount++ < maxJumpCount) {
+                downSpeed = jumpPower;
+            }
+        }
+    } else {
+        if (inputFlag[VK_MENU]) {
+            inputFlag[VK_MENU] = false;
+            std::cout << "Release Alt key\n";
         }
     }
 }
