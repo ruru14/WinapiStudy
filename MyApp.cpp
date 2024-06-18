@@ -382,6 +382,26 @@ LRESULT MyApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
         if (myApp) {
             switch (message) {
+            case WM_SYSCOMMAND:
+                switch (wParam) {
+                case SC_KEYMENU:
+                    result = 0; wasHandled = true;
+                    break;
+                }
+                break;
+            case WM_SYSKEYDOWN:
+            case WM_SYSKEYUP:
+                switch (wParam) {
+                case VK_MENU:
+                    if (lParam & 0x80000000) {
+                        //std::cout << "Alt Up\n";
+                    } else {
+                        //std::cout << "Alt Down\n";
+                    }
+                    break;
+                }
+                result = 0; wasHandled = true;
+                break;
             case WM_KEYDOWN:
             case WM_KEYUP:
                 switch (wParam) {
